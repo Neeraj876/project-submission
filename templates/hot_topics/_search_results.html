@@ -1,0 +1,14 @@
+{% if q %}
+<h3>Results for "{{ q }}"</h3>
+{% if search_results %}
+<ul>
+  {% for post in search_results %}
+  <li>[{{ post.topic.name }}] {{ post.title }}</li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="muted">No matching posts found in {{ category.name }}.</p>
+{% endif %}
+{% else %}
+<p class="muted">Type in search box to find posts in {{ category.name }}.</p>
+{% endif %}

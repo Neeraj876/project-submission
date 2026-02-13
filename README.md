@@ -1,105 +1,48 @@
-# Knowella Assignment Submission
+# Knowella Django Assignment Submission
 
-Django project implementing three assignment questions:
+This repository implements the following questions from the assignment:
 
-- Q5: Config-driven CSV/Excel data processing (`dataops`)
-- Q6: Lightweight secure telemetry system (`telemetry`)
-- Q10: Hot topics/trending feed with category search (`hot_topics`)
-
-## Table of Contents
-
-- [Overview](#overview)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-- [Run the Project](#run-the-project)
-- [Q5: DataOps](#q5-dataops)
-- [Q6: Telemetry](#q6-telemetry)
-- [Q10: Hot Topics](#q10-hot-topics)
-- [Troubleshooting](#troubleshooting)
-- [Security Notes](#security-notes)
-
-## Overview
-
-This is a single Django codebase with modular apps for each problem statement.
-
-Design goals:
-
-- Keep each domain isolated by app
-- Make behavior configurable (Q5)
-- Keep telemetry secure but lightweight (Q6)
-- Optimize hot-topic reads using precomputed rankings (Q10)
+1. Q5: Config-driven CSV/Excel processing and output to CSV/DB (`dataops`)
+2. Q6: Lightweight secure telemetry system for web app health metrics (`telemetry`)
+3. Q10: Hot topics feature with top 20 trending posts + category search (`hot_topics`)
 
 ## Tech Stack
 
-- Python 3.12+
-- Django 6
-- SQLite (default)
-- Pandas, OpenPyXL, PyYAML
-- HTMX (Q10 live search)
+1. Python 3.12+
+2. Django 6
+3. SQLite
+4. Pandas, OpenPyXL, PyYAML
+5. HTMX (for live search in Q10)
 
-## Project Structure
+## Run the Project
 
-```text
-knowella/                     # project settings and root URLs
-  settings.py
-  urls.py
+Clone and enter repository:
 
-dataops/                      # Q5
-  models.py
-  services.py
-  management/commands/run_datajob.py
-  job.yaml
-  job_excel_to_csv.yaml
-  job_excel_to_db.yaml
-
-telemetry/                    # Q6
-  models.py
-  views.py
-  urls.py
-  management/commands/create_app_client.py
-
-hot_topics/                   # Q10
-  models.py
-  services.py
-  views.py
-  urls.py
-  management/commands/seed_hot_topics.py
-  management/commands/rebuild_hot_topics.py
-
-templates/hot_topics/
-  home.html
-  category.html
-  _search_results.html
+```bash
+git clone https://github.com/Neeraj876/project-submission.git
+cd project-submission
+python -m venv .venv
 ```
-
-## Getting Started
-
-### 1) Create and activate virtual environment
 
 Git Bash:
 
 ```bash
-python -m venv .venv
 source .venv/Scripts/activate
 ```
 
 PowerShell:
 
 ```powershell
-python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
 
-### 2) Install dependencies
+Install dependencies:
 
 ```bash
 python -m pip install django djangorestframework pandas openpyxl pyyaml
 ```
 
-### 3) Optional SQLite workaround
-
-If you see `sqlite3.OperationalError: disk I/O error`, use temp DB path:
+If SQLite gives `disk I/O error`, set temp DB path:
 
 Git Bash:
 
@@ -113,7 +56,7 @@ PowerShell:
 $env:KNOWELLA_DB_PATH="$env:TEMP\knowella_submission.sqlite3"
 ```
 
-## Run the Project
+Migrate and start server:
 
 ```bash
 python manage.py makemigrations
@@ -121,51 +64,40 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-Main routes:
+## One-Command Demo
 
-- `http://127.0.0.1:8000/` (Q10 landing)
-- `http://127.0.0.1:8000/dataops/` (Q5 app)
-- `http://127.0.0.1:8000/telemetry/health/?minutes=15` (Q6 health endpoint)
+Run from repository root:
 
----
+```bash
+bash demo_run.sh
+```
 
-## Q5: DataOps
+What this script runs:
 
-### What it does
+1. migrations + Django system check
+2. Q5 all config variants (CSV/Excel to CSV/DB)
+3. Q6 secure ingest + health response
+4. Q10 seed, ranking rebuild, page/API/HTMX route checks
 
-Reads CSV/Excel, applies configurable transformations, writes to CSV or DB.
+## Main Routes
 
-### Supported actions
+1. Q10 landing page: `http://127.0.0.1:8000/`
+2. Q5 app page: `http://127.0.0.1:8000/dataops/`
+3. Q6 health endpoint: `http://127.0.0.1:8000/telemetry/health/?minutes=15`
 
-- `select`
-- `filter`
-- `rename`
-- `cast`
-- `compute`
-- `dedupe`
-- `sort`
+## Q5 Run and Check (DataOps)
 
-### Run examples
-
-CSV -> CSV:
+Run config-based jobs:
 
 ```bash
 python manage.py run_datajob --config dataops/job.yaml
-```
-
-Excel -> CSV:
-
-```bash
 python manage.py run_datajob --config dataops/job_excel_to_csv.yaml
-```
-
-Excel -> DB:
-
-```bash
 python manage.py run_datajob --config dataops/job_excel_to_db.yaml
+python manage.py run_datajob --config dataops/job_csv_to_csv.yaml
+python manage.py run_datajob --config dataops/job_csv_to_db.yaml
 ```
 
-### Verify
+Check outputs:
 
 ```bash
 cat output/paid_orders.csv
@@ -173,40 +105,25 @@ cat output/paid_orders_from_excel.csv
 python manage.py shell -c "from dataops.models import DataRecord; print(DataRecord.objects.count())"
 ```
 
----
+Supported actions in config:
 
-## Q6: Telemetry
+1. `select`
+2. `filter`
+3. `rename`
+4. `cast`
+5. `compute`
+6. `dedupe`
+7. `sort`
 
-### What it does
+## Q6 Run and Check (Telemetry)
 
-- Accepts telemetry samples via `POST /telemetry/ingest/`
-- Validates API key + HMAC signature + timestamp freshness
-- Computes app health summary via `GET /telemetry/health/?minutes=...`
-
-### Security model
-
-- `X-API-Key`: client identity
-- `X-Timestamp`: anti-replay freshness check
-- `X-Signature`: `HMAC_SHA256(secret, "{timestamp}.{raw_json}")`
-- duplicate `event_id` (per app) blocked by DB uniqueness
-
-### Metrics captured
-
-- `request_count`
-- `error_count`
-- `avg_latency_ms`
-- `p95_latency_ms`
-- `cpu_percent`
-- `memory_percent`
-- `uptime_percent`
-
-### Create client credentials
+Create API credentials:
 
 ```bash
 python manage.py create_app_client --name demo-web
 ```
 
-### Send sample telemetry
+Send one signed telemetry event (replace placeholders):
 
 ```bash
 python - <<'PY'
@@ -252,54 +169,30 @@ print("HEALTH:", urllib.request.urlopen(health_req).read().decode())
 PY
 ```
 
----
+Expected behavior:
 
-## Q10: Hot Topics
+1. Ingest returns `{"status": "accepted"}`
+2. Health returns JSON with summary and status
+3. Duplicate `event_id` for same app returns `409`
 
-### What it does
+## Q10 Run and Check (Hot Topics)
 
-- Computes trending score using engagement + time decay
-- Stores top rankings in `HotPost` for fast reads
-- Serves top 20 on landing page (`/`)
-- Supports category search
-- Uses HTMX for live search updates without full page reload
-
-### Ranking formula
-
-```text
-engagement = likes + 2*comments + 3*shares + 0.05*log1p(views)
-score = (engagement + 1) / (1 + age_hours/6)
-```
-
-### Seed and build rankings
+Seed and compute rankings:
 
 ```bash
 python manage.py seed_hot_topics --reset
 python manage.py rebuild_hot_topics
 ```
 
-### Verify endpoints
+Open and check:
 
-- `http://127.0.0.1:8000/`
-- `http://127.0.0.1:8000/category/technology/`
-- `http://127.0.0.1:8000/api/hot-topics/`
-- `http://127.0.0.1:8000/api/category/technology/search/?q=ai`
+1. `http://127.0.0.1:8000/` (global top 20)
+2. `http://127.0.0.1:8000/category/technology/` (category page)
+3. Category search updates live using HTMX
+4. `http://127.0.0.1:8000/api/hot-topics/` (JSON top 20)
+5. `http://127.0.0.1:8000/api/category/technology/search/?q=ai` (category search API)
 
----
+## Notes
 
-## Troubleshooting
-
-- `sqlite3.OperationalError: disk I/O error`
-  - set `KNOWELLA_DB_PATH` to temp path and rerun migrations
-- `Invalid API key` in telemetry
-  - create a client again with `create_app_client`
-- `Bad signature` in telemetry
-  - ensure exact signature message format `"{timestamp}.{raw_json}"`
-- Hot topics page empty
-  - run `seed_hot_topics --reset` and `rebuild_hot_topics`
-
-## Security Notes
-
-- Do not commit real API keys/secrets
-- Rotate credentials if exposed
-- Use `DEBUG=False` and a stronger DB setup in production
+1. Keep API keys/secrets out of committed files.
+2. This submission is built for assignment demo scope (SQLite + management commands + APIs).
