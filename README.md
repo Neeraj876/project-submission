@@ -64,7 +64,7 @@ python manage.py migrate
 python manage.py runserver
 ```
 
-## One-Command Demo
+## One-Command Run and Check
 
 Run from repository root:
 
@@ -77,7 +77,7 @@ What this script runs:
 1. migrations + Django system check
 2. Q5 all config variants (CSV/Excel to CSV/DB)
 3. Q6 secure ingest + health response
-4. Q10 seed, ranking rebuild, page/API/HTMX route checks
+4. Q10: seed sample data, rebuild rankings, and check HTML pages, APIs, and HTMX search endpoint
 
 ## Main Routes
 
@@ -195,4 +195,3 @@ Open and check:
 ## Notes
 
 1. Keep API keys/secrets out of committed files.
-2. This submission is built for assignment demo scope (SQLite + management commands + APIs).
